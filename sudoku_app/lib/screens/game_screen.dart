@@ -31,14 +31,22 @@ class _GameScreenState extends State<GameScreen> {
     };
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-
+  void _openSettings() async {
     final game = Provider.of<GameProvider>(context, listen: false);
 
-    /// Resume when returning to game screen
-    game.resumeTimer();
+    game.pauseTimer(); // ✅ pause BEFORE navigation
+
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SettingsScreen(),
+      ),
+    );
+
+    // ✅ only resume if game is still active
+    if (mounted) {
+      game.resumeTimer();
+    }
   }
 
   @override
@@ -54,23 +62,14 @@ class _GameScreenState extends State<GameScreen> {
 
         centerTitle: true,
 
-        title: game.timerEnabled ? Text(game.formattedTime) : null,
+        title: game.timerEnabled
+            ? Text(game.formattedTime)
+            : SizedBox.shrink(),
 
         actions: [
           IconButton(
             icon: Icon(Icons.settings),
-            onPressed: () async {
-              game.pauseTimer(); // pause when entering settings
-
-              await Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => SettingsScreen(),
-                ),
-              );
-
-              game.resumeTimer(); // resume after return
-            },
+            onPressed: _openSettings,
           ),
         ],
       ),
