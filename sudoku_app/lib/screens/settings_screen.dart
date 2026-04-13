@@ -39,6 +39,11 @@ class SettingsScreen extends StatelessWidget {
               game.toggleAutoCheck();
             },
           ),
+          SwitchListTile(
+            title: Text("Timer"),
+            value: game.timerEnabled,
+            onChanged: game.toggleTimer,
+          ),
         ],
       ),
     );
