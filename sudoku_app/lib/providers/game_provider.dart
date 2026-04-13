@@ -182,6 +182,7 @@ class GameProvider extends ChangeNotifier {
 
     int prev = board[row][col];
 
+    /// Save move for undo/redo
     history.add(Move(
       row: row,
       col: col,
@@ -190,20 +191,30 @@ class GameProvider extends ChangeNotifier {
       wasPencil: false,
     ));
 
+    /// Clear redo stack on new input
     redoStack.clear();
 
+    /// Apply number
     board[row][col] = number;
 
+    /// ---------- STANDARD MODE BEHAVIOR ----------
     if (mode == InputMode.standard) {
-      /// After placing → behave like selecting that number
+      /// placing a number = selecting that number
       selectedNumber = number;
+    }
+
+    /// ---------- KEY FIX ----------
+    /// If this number is now complete → remove highlight
+    if (isNumberComplete(number)) {
+      selectedNumber = null;
     }
 
     notifyListeners();
 
+    /// Check win condition
     _checkCompletion();
 
-    /// FAST MODE still clears tile selection
+    /// ---------- FAST MODE BEHAVIOR ----------
     if (mode == InputMode.fast) {
       selectedRow = null;
       selectedCol = null;
