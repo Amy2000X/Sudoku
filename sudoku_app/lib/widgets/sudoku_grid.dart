@@ -19,12 +19,13 @@ class SudokuGrid extends StatelessWidget {
           int row = index ~/ 9;
           int col = index % 9;
 
-          bool isSelected =
-              game.selectedRow == row && game.selectedCol == col;
-
           int value = game.board[row][col];
           bool isGiven = game.isGiven[row][col];
           bool isWrong = game.isWrong(row, col);
+          bool isSelected =
+              game.selectedRow == row && game.selectedCol == col;
+
+          bool highlight = game.shouldHighlight(row, col);
 
           Color textColor;
           FontWeight weight = FontWeight.normal;
@@ -38,15 +39,21 @@ class SudokuGrid extends StatelessWidget {
             textColor = game.userColor;
           }
 
+          Color bgColor = Colors.transparent;
+
+          if (isWrong) {
+            bgColor = Colors.red.withOpacity(0.2);
+          } else if (highlight) {
+            bgColor = Colors.black.withOpacity(0.1);
+          } else if (isSelected) {
+            bgColor = Colors.black.withOpacity(0.15);
+          }
+
           return GestureDetector(
             onTap: () => game.selectTile(row, col),
             child: Container(
               decoration: BoxDecoration(
-                color: isWrong
-                    ? Colors.red.withOpacity(0.2)
-                    : isSelected
-                        ? Colors.black.withOpacity(0.1)
-                        : Colors.transparent,
+                color: bgColor,
                 border: Border(
                   top: BorderSide(width: row % 3 == 0 ? 2 : 0.5),
                   left: BorderSide(width: col % 3 == 0 ? 2 : 0.5),

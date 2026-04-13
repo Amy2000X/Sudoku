@@ -58,23 +58,40 @@ class GameProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// ---------- INPUT ----------
+  /// ---------- TILE ----------
   void selectTile(int row, int col) {
     selectedRow = row;
     selectedCol = col;
 
-    if (mode == InputMode.fast && selectedNumber != null) {
-      inputNumber(selectedNumber!);
+    int value = board[row][col];
+
+    /// FAST MODE LOGIC
+    if (mode == InputMode.fast) {
+      if (value != 0) {
+        /// Tap existing number → select it
+        selectedNumber = value;
+      } else if (selectedNumber != null) {
+        /// Empty tile → fill with selected number
+        inputNumber(selectedNumber!);
+      }
     }
 
     notifyListeners();
   }
 
+  /// ---------- NUMBER ----------
   void selectNumber(int number) {
     selectedNumber = number;
+
+    /// In standard mode → input immediately
+    if (mode == InputMode.standard) {
+      inputNumber(number);
+    }
+
     notifyListeners();
   }
 
+  /// ---------- INPUT ----------
   void inputNumber(int number) {
     if (selectedRow == null || selectedCol == null) return;
 
@@ -83,18 +100,8 @@ class GameProvider extends ChangeNotifier {
 
     if (isGiven[row][col]) return;
 
-    redoStack.clear(); // important
+    redoStack.clear();
 
-    if (pencilMode) {
-      _handlePencil(row, col, number);
-    } else {
-      _handleNormal(row, col, number);
-    }
-
-    notifyListeners();
-  }
-
-  void _handleNormal(int row, int col, int number) {
     int prev = board[row][col];
 
     history.add(Move(
@@ -107,29 +114,8 @@ class GameProvider extends ChangeNotifier {
 
     board[row][col] = number;
     notes.remove("$row-$col");
-  }
 
-  void _handlePencil(int row, int col, int number) {
-    String key = "$row-$col";
-    Set<int> current = notes[key] ?? {};
-
-    Set<int> newSet = Set.from(current);
-
-    if (newSet.contains(number)) {
-      newSet.remove(number);
-    } else {
-      newSet.add(number);
-    }
-
-    history.add(Move(
-      row: row,
-      col: col,
-      wasPencil: true,
-      previousNotes: Set.from(current),
-      newNotes: Set.from(newSet),
-    ));
-
-    notes[key] = newSet;
+    notifyListeners();
   }
 
   /// ---------- UNDO ----------
@@ -139,13 +125,8 @@ class GameProvider extends ChangeNotifier {
     Move last = history.removeLast();
     redoStack.add(last);
 
-    if (last.wasPencil) {
-      notes["${last.row}-${last.col}"] =
-          last.previousNotes ?? {};
-    } else {
-      board[last.row][last.col] =
-          last.previousValue ?? 0;
-    }
+    board[last.row][last.col] =
+        last.previousValue ?? 0;
 
     notifyListeners();
   }
@@ -157,13 +138,8 @@ class GameProvider extends ChangeNotifier {
     Move move = redoStack.removeLast();
     history.add(move);
 
-    if (move.wasPencil) {
-      notes["${move.row}-${move.col}"] =
-          move.newNotes ?? {};
-    } else {
-      board[move.row][move.col] =
-          move.newValue ?? 0;
-    }
+    board[move.row][move.col] =
+        move.newValue ?? 0;
 
     notifyListeners();
   }
@@ -176,6 +152,17 @@ class GameProvider extends ChangeNotifier {
 
     return board[row][col] != solution[row][col];
   }
+
+  /// ---------- HIGHLIGHT ----------
+  // bool shouldHighlight(int row, int col) {
+  //   if (selectedNumber == null) return false;
+  //   return board[row][col] == selectedNumber;
+  // }
+  bool shouldHighlight(int row, int col) {
+  if (selectedNumber == null) return false;
+  return board[row][col] != 0 &&
+      board[row][col] == selectedNumber;
+}
 
   /// ---------- MODES ----------
   void toggleMode() {

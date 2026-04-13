@@ -12,13 +12,16 @@ class NumberPad extends StatelessWidget {
       children: List.generate(9, (index) {
         int number = index + 1;
 
+        bool isSelected = game.selectedNumber == number;
+
         return ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: isSelected
+                ? Colors.grey.shade400
+                : Colors.grey.shade200,
+          ),
           onPressed: () {
-            if (game.mode == InputMode.standard) {
-              game.inputNumber(number);
-            } else {
-              game.selectNumber(number);
-            }
+            game.selectNumber(number);
           },
           child: Text(number.toString()),
         );
