@@ -194,9 +194,20 @@ class GameProvider extends ChangeNotifier {
 
     board[row][col] = number;
 
+    if (mode == InputMode.standard) {
+      /// After placing → behave like selecting that number
+      selectedNumber = number;
+    }
+
     notifyListeners();
 
     _checkCompletion();
+
+    /// FAST MODE still clears tile selection
+    if (mode == InputMode.fast) {
+      selectedRow = null;
+      selectedCol = null;
+    }
   }
 
   /// ---------- COMPLETION ----------
@@ -226,6 +237,22 @@ class GameProvider extends ChangeNotifier {
     board[move.row][move.col] =
         move.previousValue ?? 0;
 
+    /// KEEP TILE SELECTED IN STANDARD MODE
+    if (mode == InputMode.standard) {
+      selectedRow = move.row;
+      selectedCol = move.col;
+
+      int value = board[move.row][move.col];
+
+      if (value == 0) {
+        /// tile became empty → clear highlight
+        selectedNumber = null;
+      } else {
+        /// tile still has value → highlight that number
+        selectedNumber = value;
+      }
+    }
+
     notifyListeners();
   }
 
@@ -238,6 +265,21 @@ class GameProvider extends ChangeNotifier {
 
     board[move.row][move.col] =
         move.newValue ?? 0;
+
+    if (mode == InputMode.standard) {
+      selectedRow = move.row;
+      selectedCol = move.col;
+
+      int value = board[move.row][move.col];
+
+      if (value == 0) {
+        /// empty → no highlight
+        selectedNumber = null;
+      } else {
+        /// has number → highlight it
+        selectedNumber = value;
+      }
+    }
 
     notifyListeners();
   }
@@ -255,5 +297,17 @@ class GameProvider extends ChangeNotifier {
     if (selectedNumber == null) return false;
     return board[row][col] != 0 &&
         board[row][col] == selectedNumber;
+  }
+
+  bool isNumberComplete(int number) {
+    int count = 0;
+
+    for (var row in board) {
+      for (var cell in row) {
+        if (cell == number) count++;
+      }
+    }
+
+    return count >= 9;
   }
 }
