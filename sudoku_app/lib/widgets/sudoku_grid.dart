@@ -23,23 +23,30 @@ class SudokuGrid extends StatelessWidget {
               game.selectedRow == row && game.selectedCol == col;
 
           int value = game.board[row][col];
+          bool isGiven = game.isGiven[row][col];
+          bool isWrong = game.isWrong(row, col);
+
+          Color textColor;
+          FontWeight weight = FontWeight.normal;
+
+          if (isGiven) {
+            textColor = Colors.black;
+            weight = FontWeight.bold;
+          } else if (isWrong) {
+            textColor = Colors.red;
+          } else {
+            textColor = game.userColor;
+          }
 
           return GestureDetector(
-            onTap: () {
-              if (game.mode == InputMode.standard) {
-                game.selectTile(row, col);
-              } else {
-                if (game.selectedNumber != null) {
-                  game.selectTile(row, col);
-                  game.inputNumber(game.selectedNumber!);
-                }
-              }
-            },
+            onTap: () => game.selectTile(row, col),
             child: Container(
               decoration: BoxDecoration(
-                color: isSelected
-                    ? Colors.black.withOpacity(0.15)
-                    : Colors.transparent,
+                color: isWrong
+                    ? Colors.red.withOpacity(0.2)
+                    : isSelected
+                        ? Colors.black.withOpacity(0.1)
+                        : Colors.transparent,
                 border: Border(
                   top: BorderSide(width: row % 3 == 0 ? 2 : 0.5),
                   left: BorderSide(width: col % 3 == 0 ? 2 : 0.5),
@@ -49,12 +56,13 @@ class SudokuGrid extends StatelessWidget {
               ),
               child: Center(
                 child: value == 0
-                    ? SizedBox.shrink()
+                    ? SizedBox()
                     : Text(
                         value.toString(),
                         style: TextStyle(
                           fontSize: 20,
-                          color: game.colors["user"],
+                          color: textColor,
+                          fontWeight: weight,
                         ),
                       ),
               ),

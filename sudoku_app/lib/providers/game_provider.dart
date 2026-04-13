@@ -7,10 +7,9 @@ enum InputMode { standard, fast }
 class GameProvider extends ChangeNotifier {
   late List<List<int>> board;
   late List<List<int>> solution;
+  late List<List<bool>> isGiven;
 
-  /// Pencil notes per tile
   Map<String, Set<int>> notes = {};
-
   List<Move> history = [];
 
   int? selectedRow;
@@ -19,31 +18,53 @@ class GameProvider extends ChangeNotifier {
 
   InputMode mode = InputMode.standard;
   bool pencilMode = false;
-  bool showMistakes = true;
 
-  Map<String, Color> colors = {
-    "grid": Colors.black,
-    "user": Colors.blue,
-    "error": Colors.red,
-  };
+  /// SETTINGS
+  bool autoCheck = true;
+  Color userColor = Colors.blue;
 
   /// ---------- NEW GAME ----------
   void newGame(Difficulty difficulty) {
-    final fullSolution = SudokuGenerator.generateSolved();
-    solution = fullSolution.map((row) => [...row]).toList();
+    final full = SudokuGenerator.generateSolved();
 
-    board = SudokuGenerator.createPuzzle(fullSolution, difficulty);
+    solution = full.map((r) => [...r]).toList();
+    board = SudokuGenerator.createPuzzle(full, difficulty);
+
+    isGiven = List.generate(
+      9,
+      (r) => List.generate(9, (c) => board[r][c] != 0),
+    );
 
     history.clear();
     notes.clear();
 
+    selectedRow = null;
+    selectedCol = null;
+    selectedNumber = null;
+
     notifyListeners();
   }
 
-  /// ---------- TILE ----------
+  /// ---------- SETTINGS ----------
+  void setUserColor(Color color) {
+    userColor = color;
+    notifyListeners();
+  }
+
+  void toggleAutoCheck() {
+    autoCheck = !autoCheck;
+    notifyListeners();
+  }
+
+  /// ---------- INPUT ----------
   void selectTile(int row, int col) {
     selectedRow = row;
     selectedCol = col;
+
+    if (mode == InputMode.fast && selectedNumber != null) {
+      inputNumber(selectedNumber!);
+    }
+
     notifyListeners();
   }
 
@@ -52,12 +73,13 @@ class GameProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// ---------- INPUT ----------
   void inputNumber(int number) {
     if (selectedRow == null || selectedCol == null) return;
 
     int row = selectedRow!;
     int col = selectedCol!;
+
+    if (isGiven[row][col]) return;
 
     if (pencilMode) {
       _handlePencil(row, col, number);
@@ -69,19 +91,17 @@ class GameProvider extends ChangeNotifier {
   }
 
   void _handleNormal(int row, int col, int number) {
-    int previous = board[row][col];
+    int prev = board[row][col];
 
     history.add(Move(
       row: row,
       col: col,
-      previousValue: previous,
+      previousValue: prev,
       newValue: number,
       wasPencil: false,
     ));
 
     board[row][col] = number;
-
-    /// clear notes if writing real number
     notes.remove("$row-$col");
   }
 
@@ -112,7 +132,7 @@ class GameProvider extends ChangeNotifier {
   void undo() {
     if (history.isEmpty) return;
 
-    Move last = history.removeLast();
+    final last = history.removeLast();
 
     if (last.wasPencil) {
       notes["${last.row}-${last.col}"] =
@@ -125,7 +145,16 @@ class GameProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// ---------- TOGGLES ----------
+  /// ---------- CHECK ----------
+  bool isWrong(int row, int col) {
+    if (!autoCheck) return false;
+    if (isGiven[row][col]) return false; // 🔥 FIX
+    if (board[row][col] == 0) return false;
+
+    return board[row][col] != solution[row][col];
+  }
+
+  /// ---------- MODES ----------
   void toggleMode() {
     mode =
         mode == InputMode.standard ? InputMode.fast : InputMode.standard;

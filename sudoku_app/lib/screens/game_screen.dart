@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/game_provider.dart';
 import '../widgets/sudoku_grid.dart';
 import '../widgets/number_pad.dart';
-import '../services/sudoku_generator.dart';
+import 'settings_screen.dart';
 
 class GameScreen extends StatelessWidget {
   @override
@@ -12,6 +12,15 @@ class GameScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: Icon(Icons.settings),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => SettingsScreen()),
+            );
+          },
+        ),
         title: Text("Sudoku"),
         actions: [
           IconButton(
@@ -24,26 +33,7 @@ class GameScreen extends StatelessWidget {
         children: [
           SudokuGrid(),
           SizedBox(height: 20),
-
-          SwitchListTile(
-            title: Text("Fast Mode"),
-            value: game.mode == InputMode.fast,
-            onChanged: (_) => game.toggleMode(),
-          ),
-
-          SwitchListTile(
-            title: Text("Pencil Mode"),
-            value: game.pencilMode,
-            onChanged: (_) => game.togglePencil(),
-          ),
-
           NumberPad(),
-
-          ElevatedButton(
-            onPressed: () =>
-                game.newGame(Difficulty.medium),
-            child: Text("New Game"),
-          )
         ],
       ),
     );
