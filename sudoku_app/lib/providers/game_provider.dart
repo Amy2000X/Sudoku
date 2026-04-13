@@ -10,7 +10,9 @@ class GameProvider extends ChangeNotifier {
   late List<List<bool>> isGiven;
 
   Map<String, Set<int>> notes = {};
+
   List<Move> history = [];
+  List<Move> redoStack = [];
 
   int? selectedRow;
   int? selectedCol;
@@ -19,7 +21,6 @@ class GameProvider extends ChangeNotifier {
   InputMode mode = InputMode.standard;
   bool pencilMode = false;
 
-  /// SETTINGS
   bool autoCheck = true;
   Color userColor = Colors.blue;
 
@@ -36,6 +37,7 @@ class GameProvider extends ChangeNotifier {
     );
 
     history.clear();
+    redoStack.clear();
     notes.clear();
 
     selectedRow = null;
@@ -80,6 +82,8 @@ class GameProvider extends ChangeNotifier {
     int col = selectedCol!;
 
     if (isGiven[row][col]) return;
+
+    redoStack.clear(); // important
 
     if (pencilMode) {
       _handlePencil(row, col, number);
@@ -132,7 +136,8 @@ class GameProvider extends ChangeNotifier {
   void undo() {
     if (history.isEmpty) return;
 
-    final last = history.removeLast();
+    Move last = history.removeLast();
+    redoStack.add(last);
 
     if (last.wasPencil) {
       notes["${last.row}-${last.col}"] =
@@ -145,10 +150,28 @@ class GameProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// ---------- REDO ----------
+  void redo() {
+    if (redoStack.isEmpty) return;
+
+    Move move = redoStack.removeLast();
+    history.add(move);
+
+    if (move.wasPencil) {
+      notes["${move.row}-${move.col}"] =
+          move.newNotes ?? {};
+    } else {
+      board[move.row][move.col] =
+          move.newValue ?? 0;
+    }
+
+    notifyListeners();
+  }
+
   /// ---------- CHECK ----------
   bool isWrong(int row, int col) {
     if (!autoCheck) return false;
-    if (isGiven[row][col]) return false; // 🔥 FIX
+    if (isGiven[row][col]) return false;
     if (board[row][col] == 0) return false;
 
     return board[row][col] != solution[row][col];

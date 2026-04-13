@@ -12,27 +12,64 @@ class GameScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
+        /// LEFT → HOME
         leading: IconButton(
-          icon: Icon(Icons.settings),
+          icon: Icon(Icons.home),
           onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => SettingsScreen()),
-            );
+            Navigator.pop(context);
           },
         ),
-        title: Text("Sudoku"),
+
+        /// CENTER → UNDO / REDO
+        centerTitle: true,
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              icon: Icon(Icons.undo),
+              onPressed:
+                  game.history.isEmpty ? null : game.undo,
+            ),
+            IconButton(
+              icon: Icon(Icons.redo),
+              onPressed:
+                  game.redoStack.isEmpty ? null : game.redo,
+            ),
+          ],
+        ),
+
+        /// RIGHT → SETTINGS
         actions: [
           IconButton(
-            icon: Icon(Icons.undo),
-            onPressed: game.undo,
+            icon: Icon(Icons.settings),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => SettingsScreen()),
+              );
+            },
           ),
         ],
       ),
+
       body: Column(
         children: [
           SudokuGrid(),
-          SizedBox(height: 20),
+          SizedBox(height: 10),
+
+          SwitchListTile(
+            title: Text("Fast Mode"),
+            value: game.mode == InputMode.fast,
+            onChanged: (_) => game.toggleMode(),
+          ),
+
+          SwitchListTile(
+            title: Text("Pencil Mode"),
+            value: game.pencilMode,
+            onChanged: (_) => game.togglePencil(),
+          ),
+
           NumberPad(),
         ],
       ),
