@@ -12,7 +12,9 @@ class NumberPad extends StatelessWidget {
       children: List.generate(9, (index) {
         int number = index + 1;
 
-        bool isSelected = game.selectedNumber == number;
+        bool isSelected =
+            game.mode == InputMode.fast &&
+            game.selectedNumber == number;
 
         return ElevatedButton(
           style: ElevatedButton.styleFrom(

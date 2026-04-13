@@ -11,8 +11,6 @@ class GameProvider extends ChangeNotifier {
   late List<List<int>> solution;
   late List<List<bool>> isGiven;
 
-  Map<String, Set<int>> notes = {};
-
   List<Move> history = [];
   List<Move> redoStack = [];
 
@@ -21,30 +19,22 @@ class GameProvider extends ChangeNotifier {
   int? selectedNumber;
 
   InputMode mode = InputMode.standard;
-  bool pencilMode = false;
-
   bool autoCheck = true;
-
-  /// SETTINGS
   bool timerEnabled = true;
 
   Color userColor = Colors.blue;
 
-  /// TIMER
   Timer? _timer;
   int seconds = 0;
 
-  /// STATE
   GameState state = GameState.playing;
   Difficulty? currentDifficulty;
 
   Function(Difficulty diff, String time)? onComplete;
 
-  /// ---------- TIMER CORE ----------
+  /// ---------- TIMER ----------
   void _startTimer() {
     _timer?.cancel();
-
-    if (!timerEnabled) return;
 
     _timer = Timer.periodic(Duration(seconds: 1), (_) {
       seconds++;
@@ -52,26 +42,13 @@ class GameProvider extends ChangeNotifier {
     });
   }
 
-  void _stopTimer() {
-    _timer?.cancel();
-  }
-
   void pauseTimer() {
     _timer?.cancel();
-    state = GameState.paused;
-    notifyListeners();
   }
 
   void resumeTimer() {
-    if (state == GameState.completed) return;
-
-    state = GameState.playing;
-
-    if (timerEnabled) {
-      _startTimer();
-    }
-
-    notifyListeners();
+    if (state != GameState.playing) return;
+    _startTimer();
   }
 
   String get formattedTime {
@@ -80,15 +57,19 @@ class GameProvider extends ChangeNotifier {
     return "$m:$s";
   }
 
+  /// ---------- SETTINGS ----------
+  void setUserColor(Color color) {
+    userColor = color;
+    notifyListeners();
+  }
+
+  void toggleAutoCheck() {
+    autoCheck = !autoCheck;
+    notifyListeners();
+  }
+
   void toggleTimer(bool value) {
     timerEnabled = value;
-
-    /// IMPORTANT:
-    /// keep running in background, just hide UI
-    if (timerEnabled && state == GameState.playing) {
-      _startTimer();
-    }
-
     notifyListeners();
   }
 
@@ -109,52 +90,87 @@ class GameProvider extends ChangeNotifier {
 
     history.clear();
     redoStack.clear();
-    notes.clear();
 
     selectedRow = null;
     selectedCol = null;
     selectedNumber = null;
 
     seconds = 0;
-
     _startTimer();
 
     notifyListeners();
   }
 
-  /// ---------- SETTINGS ----------
-  void setUserColor(Color color) {
-    userColor = color;
+  /// ---------- MODE SWITCH ----------
+  void toggleMode() {
+    mode =
+        mode == InputMode.standard ? InputMode.fast : InputMode.standard;
+
+    /// FULL RESET ON SWITCH
+    selectedRow = null;
+    selectedCol = null;
+    selectedNumber = null;
+
     notifyListeners();
   }
 
-  void toggleAutoCheck() {
-    autoCheck = !autoCheck;
+  /// ---------- TILE ----------
+  void selectTile(int row, int col) {
+    int value = board[row][col];
+
+    if (mode == InputMode.fast) {
+      /// FAST MODE
+
+      if (value != 0) {
+        selectedNumber = value;
+        notifyListeners();
+        return;
+      }
+
+      if (selectedNumber != null) {
+        selectedRow = row;
+        selectedCol = col;
+        inputNumber(selectedNumber!);
+
+        selectedRow = null;
+        selectedCol = null;
+      }
+
+      return;
+    }
+
+    /// STANDARD MODE
+
+    if (value == 0) {
+      selectedRow = row;
+      selectedCol = col;
+      selectedNumber = null;
+    } else {
+      selectedNumber = value;
+      selectedRow = null;
+      selectedCol = null;
+    }
+
     notifyListeners();
+  }
+
+  /// ---------- NUMBER ----------
+  void selectNumber(int number) {
+    if (mode == InputMode.fast) {
+      selectedNumber = number;
+      notifyListeners();
+      return;
+    }
+
+    if (selectedRow != null && selectedCol != null) {
+      inputNumber(number);
+    } else {
+      selectedNumber = number;
+      notifyListeners();
+    }
   }
 
   /// ---------- INPUT ----------
-  void selectTile(int row, int col) {
-    selectedRow = row;
-    selectedCol = col;
-
-    if (mode == InputMode.fast && selectedNumber != null) {
-      inputNumber(selectedNumber!);
-    }
-
-    notifyListeners();
-  }
-
-  void selectNumber(int number) {
-    selectedNumber = number;
-
-    if (mode == InputMode.standard) {
-      inputNumber(number);
-    }
-
-    notifyListeners();
-  }
-
   void inputNumber(int number) {
     if (state != GameState.playing) return;
     if (selectedRow == null || selectedCol == null) return;
@@ -164,17 +180,19 @@ class GameProvider extends ChangeNotifier {
 
     if (isGiven[row][col]) return;
 
-    redoStack.clear();
-
-    board[row][col] = number;
+    int prev = board[row][col];
 
     history.add(Move(
       row: row,
       col: col,
-      previousValue: 0,
+      previousValue: prev,
       newValue: number,
       wasPencil: false,
     ));
+
+    redoStack.clear();
+
+    board[row][col] = number;
 
     notifyListeners();
 
@@ -191,13 +209,10 @@ class GameProvider extends ChangeNotifier {
     }
 
     state = GameState.completed;
-    _stopTimer();
+    _timer?.cancel();
 
-    final diff = currentDifficulty;
-    final time = formattedTime;
-
-    if (onComplete != null && diff != null) {
-      onComplete!(diff, time);
+    if (onComplete != null && currentDifficulty != null) {
+      onComplete!(currentDifficulty!, formattedTime);
     }
   }
 
@@ -205,10 +220,11 @@ class GameProvider extends ChangeNotifier {
   void undo() {
     if (history.isEmpty) return;
 
-    final last = history.removeLast();
-    redoStack.add(last);
+    final move = history.removeLast();
+    redoStack.add(move);
 
-    board[last.row][last.col] = last.previousValue ?? 0;
+    board[move.row][move.col] =
+        move.previousValue ?? 0;
 
     notifyListeners();
   }
@@ -220,12 +236,13 @@ class GameProvider extends ChangeNotifier {
     final move = redoStack.removeLast();
     history.add(move);
 
-    board[move.row][move.col] = move.newValue ?? 0;
+    board[move.row][move.col] =
+        move.newValue ?? 0;
 
     notifyListeners();
   }
 
-  /// ---------- CHECK ----------
+  /// ---------- UI HELPERS ----------
   bool isWrong(int row, int col) {
     if (!autoCheck) return false;
     if (isGiven[row][col]) return false;
@@ -238,17 +255,5 @@ class GameProvider extends ChangeNotifier {
     if (selectedNumber == null) return false;
     return board[row][col] != 0 &&
         board[row][col] == selectedNumber;
-  }
-
-  /// ---------- MODES ----------
-  void toggleMode() {
-    mode =
-        mode == InputMode.standard ? InputMode.fast : InputMode.standard;
-    notifyListeners();
-  }
-
-  void togglePencil() {
-    pencilMode = !pencilMode;
-    notifyListeners();
   }
 }

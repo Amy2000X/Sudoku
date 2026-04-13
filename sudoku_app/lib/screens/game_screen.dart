@@ -34,19 +34,14 @@ class _GameScreenState extends State<GameScreen> {
   void _openSettings() async {
     final game = Provider.of<GameProvider>(context, listen: false);
 
-    game.pauseTimer(); // ✅ pause BEFORE navigation
+    game.pauseTimer();
 
     await Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => SettingsScreen(),
-      ),
+      MaterialPageRoute(builder: (_) => SettingsScreen()),
     );
 
-    // ✅ only resume if game is still active
-    if (mounted) {
-      game.resumeTimer();
-    }
+    game.resumeTimer();
   }
 
   @override
@@ -62,9 +57,25 @@ class _GameScreenState extends State<GameScreen> {
 
         centerTitle: true,
 
-        title: game.timerEnabled
-            ? Text(game.formattedTime)
-            : SizedBox.shrink(),
+        /// CENTER → TIMER + UNDO REDO
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (game.timerEnabled)
+              Text(game.formattedTime),
+
+            IconButton(
+              icon: Icon(Icons.undo),
+              onPressed:
+                  game.history.isEmpty ? null : game.undo,
+            ),
+            IconButton(
+              icon: Icon(Icons.redo),
+              onPressed:
+                  game.redoStack.isEmpty ? null : game.redo,
+            ),
+          ],
+        ),
 
         actions: [
           IconButton(
@@ -83,12 +94,6 @@ class _GameScreenState extends State<GameScreen> {
             title: Text("Fast Mode"),
             value: game.mode == InputMode.fast,
             onChanged: (_) => game.toggleMode(),
-          ),
-
-          SwitchListTile(
-            title: Text("Pencil Mode"),
-            value: game.pencilMode,
-            onChanged: (_) => game.togglePencil(),
           ),
 
           NumberPad(),
