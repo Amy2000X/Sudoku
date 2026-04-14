@@ -6,6 +6,8 @@ import 'game_screen.dart';
 import 'settings_screen.dart';
 
 class HomeScreen extends StatelessWidget {
+  const HomeScreen({super.key});
+
   void _startGame(BuildContext context, Difficulty difficulty) {
     final game = Provider.of<GameProvider>(context, listen: false);
     game.newGame(difficulty);

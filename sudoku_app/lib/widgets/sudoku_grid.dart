@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import '../providers/game_provider.dart';
 
 class SudokuGrid extends StatefulWidget {
+  const SudokuGrid({super.key});
+
   @override
   State<SudokuGrid> createState() => _SudokuGridState();
 }

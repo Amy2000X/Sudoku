@@ -3,7 +3,15 @@ import 'package:provider/provider.dart';
 import '../providers/game_provider.dart';
 
 class SettingsScreen extends StatelessWidget {
-  final Map<String, Color> colorOptions = {
+  const SettingsScreen({super.key});
+
+  static const Map<String, Color> themeOptions = {
+    "White": Colors.white,
+    "Cream": Color(0xFFFFF8E1),
+    "Pastel Pink": Color(0xFFFCEFF8),
+  };
+
+  static const Map<String, Color> colorOptions = {
     "Blue": Colors.blue,
     "Green": Colors.green,
     "Purple": Colors.purple,

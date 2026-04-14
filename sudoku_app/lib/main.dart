@@ -8,6 +8,8 @@ void main() {
 }
 
 class SudokuApp extends StatelessWidget {
+  const SudokuApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(

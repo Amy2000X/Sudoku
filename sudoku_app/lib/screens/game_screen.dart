@@ -7,6 +7,8 @@ import 'settings_screen.dart';
 import 'completion_screen.dart';
 
 class GameScreen extends StatefulWidget {
+  const GameScreen({super.key});
+
   @override
   State<GameScreen> createState() => _GameScreenState();
 }
