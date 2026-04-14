@@ -127,7 +127,7 @@ class GameProvider extends ChangeNotifier {
       selectedRow = null;
       selectedCol = null;
       selectedNumber = null;
-      isPencilSelected = false;
+      // isPencilSelected = false;
     } else {
       mode = InputMode.fast;
       selectedRow = null;
@@ -161,7 +161,7 @@ class GameProvider extends ChangeNotifier {
       selectedCol = col;
 
       selectedNumber = null;
-      isPencilSelected = false;
+      // isPencilSelected = false;
     } else {
       /// filled cell
 
@@ -197,8 +197,18 @@ class GameProvider extends ChangeNotifier {
 
   /// ---------- PENCIL SELECT ----------
   void selectPencilNumber(int number) {
+    if (mode == InputMode.standard) {
+      /// ✅ Only apply, no selection
+      if (selectedRow != null && selectedCol != null) {
+        _applyNote(selectedRow!, selectedCol!, number);
+      }
+      return;
+    }
+
+    /// FAST MODE (unchanged behavior)
     selectedNumber = number;
     isPencilSelected = true;
+
     notifyListeners();
   }
 
