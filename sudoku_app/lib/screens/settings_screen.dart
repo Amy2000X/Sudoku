@@ -9,6 +9,7 @@ class SettingsScreen extends StatelessWidget {
     "Purple": Colors.purple,
     "Pink": Colors.pink,
     "Yellow": Colors.yellow,
+    "Black": Colors.black,
   };
 
   @override
@@ -17,35 +18,97 @@ class SettingsScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(title: Text("Settings")),
-      body: Column(
-        children: [
-          ListTile(title: Text("User Number Color")),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            /// 🎨 PEN COLOR
+            _buildRow(
+              label: "Pen Color",
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: colorOptions.entries.map((entry) {
+                  final color = entry.value;
+                  final isSelected = game.userColor == color;
 
-          ...colorOptions.entries.map((entry) {
-            return RadioListTile<Color>(
-              title: Text(entry.key),
-              value: entry.value,
-              groupValue: game.userColor,
-              onChanged: (color) {
-                game.setUserColor(color!);
-              },
-            );
-          }),
+                  return GestureDetector(
+                    onTap: () => game.setUserColor(color),
+                    child: Container(
+                      margin: EdgeInsets.symmetric(horizontal: 6),
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        color: color,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: isSelected
+                              ? Colors.black
+                              : Colors.transparent,
+                          width: 2,
+                        ),
+                      ),
+                      child: isSelected
+                          ? Icon(
+                              Icons.check,
+                              size: 16,
+                              color: color.computeLuminance() > 0.5
+                                  ? Colors.black
+                                  : Colors.white,
+                            )
+                          : null,
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
 
-          SwitchListTile(
-            title: Text("Auto Check Mistakes"),
-            value: game.autoCheck,
-            onChanged: (val) {
-              game.toggleAutoCheck();
-            },
-          ),
-          SwitchListTile(
-            title: Text("Timer"),
-            value: game.timerEnabled,
-            onChanged: game.toggleTimer,
-          ),
-        ],
+            SizedBox(height: 16),
+
+            /// ⚠️ AUTO CHECK
+            _buildRow(
+              label: "Auto Check",
+              child: Switch(
+                value: game.autoCheck,
+                onChanged: (_) => game.toggleAutoCheck(),
+              ),
+            ),
+
+            SizedBox(height: 16),
+
+            /// ⏱ TIMER
+            _buildRow(
+              label: "Timer",
+              child: Switch(
+                value: game.timerEnabled,
+                onChanged: game.toggleTimer,
+              ),
+            ),
+          ],
+        ),
       ),
+    );
+  }
+
+  /// 🔥 REUSABLE ROW
+  Widget _buildRow({required String label, required Widget child}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween, // 🔥 key
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+
+        Flexible(
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: child,
+          ),
+        ),
+      ],
     );
   }
 }

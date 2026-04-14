@@ -11,7 +11,6 @@ class _SudokuGridState extends State<SudokuGrid> {
   int? lastRow;
   int? lastCol;
 
-  /// ✅ NEW: track gesture type
   bool _isSwiping = false;
 
   void _handleTouch(BuildContext context, Offset globalPosition) {
@@ -25,7 +24,6 @@ class _SudokuGridState extends State<SudokuGrid> {
     int col = (local.dx ~/ size).clamp(0, 8);
     int row = (local.dy ~/ size).clamp(0, 8);
 
-    /// Only trigger if new cell
     if (row == lastRow && col == lastCol) return;
 
     lastRow = row;
@@ -38,12 +36,14 @@ class _SudokuGridState extends State<SudokuGrid> {
   Widget build(BuildContext context) {
     final game = Provider.of<GameProvider>(context);
 
+    double gridSize = MediaQuery.of(context).size.width;
+    double cellSize = gridSize / 9;
+
     return AspectRatio(
       aspectRatio: 1,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
 
-        /// ✅ TAP (only if not swiping)
         onTapDown: (details) {
           if (!_isSwiping) {
             lastRow = null;
@@ -52,7 +52,6 @@ class _SudokuGridState extends State<SudokuGrid> {
           }
         },
 
-        /// ✅ SWIPE START
         onPanStart: (details) {
           _isSwiping = true;
           lastRow = null;
@@ -60,12 +59,10 @@ class _SudokuGridState extends State<SudokuGrid> {
           _handleTouch(context, details.globalPosition);
         },
 
-        /// ✅ SWIPE MOVE
         onPanUpdate: (details) {
           _handleTouch(context, details.globalPosition);
         },
 
-        /// ✅ RESET
         onPanEnd: (_) {
           _isSwiping = false;
           lastRow = null;
@@ -124,11 +121,18 @@ class _SudokuGridState extends State<SudokuGrid> {
               ),
               child: Center(
                 child: value == 0
-                    ? _buildNotes(game.notes[row][col])
+                    ? _buildNotes(
+                        game,
+                        game.notes[row][col],
+                        row,
+                        col,
+                        cellSize,
+                      )
                     : Text(
                         value.toString(),
+                        textAlign: TextAlign.center,
                         style: TextStyle(
-                          fontSize: 20,
+                          fontSize: cellSize * 0.5, // ✅ responsive
                           color: textColor,
                           fontWeight: weight,
                         ),
@@ -141,10 +145,19 @@ class _SudokuGridState extends State<SudokuGrid> {
     );
   }
 
-  /// NOTES
-  Widget _buildNotes(Set<int> notes) {
-    return Padding(
-      padding: const EdgeInsets.all(2),
+  /// ✅ UPDATED NOTES
+  Widget _buildNotes(
+    GameProvider game,
+    Set<int> notes,
+    int row,
+    int col,
+    double cellSize,
+  ) {
+    double noteSize = cellSize / 3.5;
+
+    return SizedBox(
+      width: cellSize,
+      height: cellSize,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: List.generate(3, (r) {
@@ -153,15 +166,30 @@ class _SudokuGridState extends State<SudokuGrid> {
             children: List.generate(3, (c) {
               int number = r * 3 + c + 1;
 
+              bool hasNote = notes.contains(number);
+
+              bool isHighlighted = game.selectedNumber != null &&
+                  number == game.selectedNumber;
+
               return SizedBox(
-                width: 14,
-                height: 14,
+                width: noteSize,
+                height: noteSize,
                 child: Center(
-                  child: Text(
-                    notes.contains(number) ? number.toString() : "",
-                    style: TextStyle(
-                      fontSize: 9,
-                      color: Colors.grey,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      hasNote ? number.toString() : "",
+                      style: TextStyle(
+                        fontSize: noteSize * 0.6,
+                        color: hasNote
+                            ? (isHighlighted
+                                ? game.userColor
+                                : Colors.grey)
+                            : Colors.transparent,
+                        fontWeight: isHighlighted
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                      ),
                     ),
                   ),
                 ),
