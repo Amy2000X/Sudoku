@@ -79,7 +79,6 @@ class GameProvider extends ChangeNotifier {
   void togglePencil() {
     pencilMode = !pencilMode;
 
-    /// switch to pen if pencil was active
     if (!pencilMode && isPencilSelected) {
       isPencilSelected = false;
     }
@@ -125,8 +124,6 @@ class GameProvider extends ChangeNotifier {
   void toggleMode() {
     if (mode == InputMode.fast) {
       mode = InputMode.standard;
-
-      /// clear selection
       selectedRow = null;
       selectedCol = null;
       selectedNumber = null;
@@ -157,22 +154,28 @@ class GameProvider extends ChangeNotifier {
     }
 
     /// STANDARD MODE
+
     if (value == 0) {
+      /// empty cell → normal select
       selectedRow = row;
       selectedCol = col;
 
-      /// clear highlight
       selectedNumber = null;
       isPencilSelected = false;
     } else {
-      /// highlight same numbers
-      selectedNumber = value;
+      /// filled cell
 
-      /// DO NOT highlight button
+      selectedNumber = value;
       isPencilSelected = false;
 
-      selectedRow = null;
-      selectedCol = null;
+      /// ✅ FIX: allow editing if NOT given
+      if (!isGiven[row][col]) {
+        selectedRow = row;
+        selectedCol = col;
+      } else {
+        selectedRow = null;
+        selectedCol = null;
+      }
     }
 
     notifyListeners();
@@ -199,31 +202,30 @@ class GameProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// ---------- APPLY NUMBER ----------
+  /// ---------- APPLY NUMBER (FIXED) ----------
   void _applyNumber(int row, int col, int number) {
     if (isGiven[row][col]) return;
     if (isNumberComplete(number)) return;
-    
+
+    int previous = board[row][col];
+
     history.add(Move(
       row: row,
       col: col,
-      previousValue: board[row][col],
+      previousValue: previous,
       newValue: number,
       wasPencil: false,
     ));
 
     redoStack.clear();
 
-    board[row][col] = number;
-    notes[row][col].clear();
-
-    _removeNotesFromPeers(row, col, number);
-
-    if (isNumberComplete(number)) {
-      selectedNumber = null;
-      isPencilSelected = false;
-    } else if (mode == InputMode.fast) {
-      selectedNumber = number;
+    /// ✅ TOGGLE LOGIC
+    if (previous == number) {
+      board[row][col] = 0; // remove
+    } else {
+      board[row][col] = number; // replace
+      notes[row][col].clear();
+      _removeNotesFromPeers(row, col, number);
     }
 
     notifyListeners();
@@ -256,7 +258,7 @@ class GameProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// ---------- STANDARD INPUT ----------
+  /// ---------- STANDARD INPUT (FIXED) ----------
   void inputNumber(int number) {
     if (selectedRow == null || selectedCol == null) return;
     if (isNumberComplete(number)) return;
@@ -266,27 +268,25 @@ class GameProvider extends ChangeNotifier {
 
     if (isGiven[row][col]) return;
 
+    int previous = board[row][col];
+
     history.add(Move(
       row: row,
       col: col,
-      previousValue: board[row][col],
+      previousValue: previous,
       newValue: number,
       wasPencil: false,
     ));
 
     redoStack.clear();
 
-    board[row][col] = number;
-    notes[row][col].clear();
-
-    _removeNotesFromPeers(row, col, number);
-
-    /// only keep selection in fast mode
-    if (isNumberComplete(number)) {
-      selectedNumber = null;
-      isPencilSelected = false;
-    } else if (mode == InputMode.fast) {
-      selectedNumber = number;
+    /// ✅ TOGGLE LOGIC
+    if (previous == number) {
+      board[row][col] = 0;
+    } else {
+      board[row][col] = number;
+      notes[row][col].clear();
+      _removeNotesFromPeers(row, col, number);
     }
 
     notifyListeners();
