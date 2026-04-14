@@ -95,6 +95,11 @@ class _GameScreenState extends State<GameScreen> {
             value: game.mode == InputMode.fast,
             onChanged: (_) => game.toggleMode(),
           ),
+          SwitchListTile(
+            title: Text("Pencil Mode"),
+            value: game.pencilMode,
+            onChanged: (_) => game.togglePencil(),
+          ),
 
           NumberPad(),
         ],

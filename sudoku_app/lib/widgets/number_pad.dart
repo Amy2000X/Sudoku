@@ -7,45 +7,85 @@ class NumberPad extends StatelessWidget {
   Widget build(BuildContext context) {
     final game = Provider.of<GameProvider>(context);
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8.0),
-      child: Row(
-        children: List.generate(9, (index) {
-          int number = index + 1;
+    return Column(
+      children: [
+        _buildPenRow(game),
+        if (game.pencilMode) _buildPencilRow(game),
+      ],
+    );
+  }
 
-          bool isSelected =
-              game.mode == InputMode.fast &&
-              game.selectedNumber == number;
+  /// 🔢 PEN ROW
+  Widget _buildPenRow(GameProvider game) {
+    return Row(
+      children: List.generate(9, (index) {
+        int number = index + 1;
 
-          bool isComplete = game.isNumberComplete(number);
+        bool isSelected =
+            !game.isPencilSelected &&
+            game.selectedNumber == number &&
+            game.mode == InputMode.fast;
 
-          return Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 2),
-              child: Opacity(
-                opacity: isComplete ? 0.0 : 1.0, // 👻 invisible but keeps space
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    padding: EdgeInsets.symmetric(vertical: 14),
-                    backgroundColor: isSelected
-                        ? Colors.grey.shade400
-                        : Colors.grey.shade200,
-                  ),
-                  onPressed: isComplete
-                      ? null
-                      : () {
-                          game.selectNumber(number);
-                        },
-                  child: Text(
-                    number.toString(),
-                    style: TextStyle(fontSize: 18),
-                  ),
+        bool isComplete = game.isNumberComplete(number);
+
+        return Expanded(
+          child: Padding(
+            padding: const EdgeInsets.all(2),
+            child: Opacity(
+              opacity: isComplete ? 0.0 : 1.0, // 👻 hide when done
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: isSelected
+                      ? Colors.grey.shade400
+                      : Colors.grey.shade200,
+                ),
+                onPressed: isComplete
+                    ? null
+                    : () => game.selectNumber(number),
+                child: Text(number.toString()),
+              ),
+            ),
+          ),
+        );
+      }),
+    );
+  }
+
+  /// ✏️ PENCIL ROW
+  Widget _buildPencilRow(GameProvider game) {
+    return Row(
+      children: List.generate(9, (index) {
+        int number = index + 1;
+
+        bool isSelected =
+            game.isPencilSelected &&
+            game.selectedNumber == number;
+
+        bool isComplete = game.isNumberComplete(number);
+
+        return Expanded(
+          child: Padding(
+            padding: const EdgeInsets.all(2),
+            child: Opacity(
+              opacity: isComplete ? 0.0 : 1.0, // 👻 hide here too
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: isSelected
+                      ? Colors.grey.shade500
+                      : Colors.grey.shade300,
+                ),
+                onPressed: isComplete
+                    ? null
+                    : () => game.selectPencilNumber(number),
+                child: Text(
+                  number.toString(),
+                  style: TextStyle(color: Colors.black54),
                 ),
               ),
             ),
-          );
-        }),
-      ),
+          ),
+        );
+      }),
     );
   }
 }

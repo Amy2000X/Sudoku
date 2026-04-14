@@ -10,15 +10,20 @@ class GameProvider extends ChangeNotifier {
   late List<List<int>> board;
   late List<List<int>> solution;
   late List<List<bool>> isGiven;
+  late List<List<Set<int>>> notes;
 
   List<Move> history = [];
   List<Move> redoStack = [];
 
   int? selectedRow;
   int? selectedCol;
+
   int? selectedNumber;
+  bool isPencilSelected = false;
 
   InputMode mode = InputMode.standard;
+  bool pencilMode = false;
+
   bool autoCheck = true;
   bool timerEnabled = true;
 
@@ -35,16 +40,13 @@ class GameProvider extends ChangeNotifier {
   /// ---------- TIMER ----------
   void _startTimer() {
     _timer?.cancel();
-
     _timer = Timer.periodic(Duration(seconds: 1), (_) {
       seconds++;
       notifyListeners();
     });
   }
 
-  void pauseTimer() {
-    _timer?.cancel();
-  }
+  void pauseTimer() => _timer?.cancel();
 
   void resumeTimer() {
     if (state != GameState.playing) return;
@@ -73,6 +75,18 @@ class GameProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// ---------- PENCIL ----------
+  void togglePencil() {
+    pencilMode = !pencilMode;
+
+    /// switch to pen if pencil was active
+    if (!pencilMode && isPencilSelected) {
+      isPencilSelected = false;
+    }
+
+    notifyListeners();
+  }
+
   /// ---------- NEW GAME ----------
   void newGame(Difficulty difficulty) {
     currentDifficulty = difficulty;
@@ -88,12 +102,18 @@ class GameProvider extends ChangeNotifier {
       (r) => List.generate(9, (c) => board[r][c] != 0),
     );
 
+    notes = List.generate(
+      9,
+      (_) => List.generate(9, (_) => <int>{}),
+    );
+
     history.clear();
     redoStack.clear();
 
     selectedRow = null;
     selectedCol = null;
     selectedNumber = null;
+    isPencilSelected = false;
 
     seconds = 0;
     _startTimer();
@@ -101,15 +121,22 @@ class GameProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// ---------- MODE SWITCH ----------
+  /// ---------- MODE ----------
   void toggleMode() {
-    mode =
-        mode == InputMode.standard ? InputMode.fast : InputMode.standard;
+    if (mode == InputMode.fast) {
+      mode = InputMode.standard;
 
-    /// FULL RESET ON SWITCH
-    selectedRow = null;
-    selectedCol = null;
-    selectedNumber = null;
+      /// clear selection
+      selectedRow = null;
+      selectedCol = null;
+      selectedNumber = null;
+      isPencilSelected = false;
+    } else {
+      mode = InputMode.fast;
+      selectedRow = null;
+      selectedCol = null;
+      selectedNumber = null;
+    }
 
     notifyListeners();
   }
@@ -119,34 +146,31 @@ class GameProvider extends ChangeNotifier {
     int value = board[row][col];
 
     if (mode == InputMode.fast) {
-      /// FAST MODE
+      if (selectedNumber == null) return;
 
-      if (value != 0) {
-        selectedNumber = value;
-        notifyListeners();
-        return;
+      if (isPencilSelected) {
+        _applyNote(row, col, selectedNumber!);
+      } else {
+        _applyNumber(row, col, selectedNumber!);
       }
-
-      if (selectedNumber != null) {
-        selectedRow = row;
-        selectedCol = col;
-        inputNumber(selectedNumber!);
-
-        selectedRow = null;
-        selectedCol = null;
-      }
-
       return;
     }
 
     /// STANDARD MODE
-
     if (value == 0) {
       selectedRow = row;
       selectedCol = col;
+
+      /// clear highlight
       selectedNumber = null;
+      isPencilSelected = false;
     } else {
+      /// highlight same numbers
       selectedNumber = value;
+
+      /// DO NOT highlight button
+      isPencilSelected = false;
+
       selectedRow = null;
       selectedCol = null;
     }
@@ -154,70 +178,134 @@ class GameProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// ---------- NUMBER ----------
+  /// ---------- PEN SELECT ----------
   void selectNumber(int number) {
-    if (mode == InputMode.fast) {
-      selectedNumber = number;
-      notifyListeners();
-      return;
+    selectedNumber = number;
+    isPencilSelected = false;
+
+    if (mode == InputMode.standard &&
+        selectedRow != null &&
+        selectedCol != null) {
+      inputNumber(number);
     }
 
-    if (selectedRow != null && selectedCol != null) {
-      inputNumber(number);
-    } else {
-      selectedNumber = number;
-      notifyListeners();
-    }
+    notifyListeners();
   }
 
-  /// ---------- INPUT ----------
+  /// ---------- PENCIL SELECT ----------
+  void selectPencilNumber(int number) {
+    selectedNumber = number;
+    isPencilSelected = true;
+    notifyListeners();
+  }
+
+  /// ---------- APPLY NUMBER ----------
+  void _applyNumber(int row, int col, int number) {
+    if (isGiven[row][col]) return;
+    if (isNumberComplete(number)) return;
+    
+    history.add(Move(
+      row: row,
+      col: col,
+      previousValue: board[row][col],
+      newValue: number,
+      wasPencil: false,
+    ));
+
+    redoStack.clear();
+
+    board[row][col] = number;
+    notes[row][col].clear();
+
+    _removeNotesFromPeers(row, col, number);
+
+    if (isNumberComplete(number)) {
+      selectedNumber = null;
+      isPencilSelected = false;
+    } else if (mode == InputMode.fast) {
+      selectedNumber = number;
+    }
+
+    notifyListeners();
+    _checkCompletion();
+  }
+
+  /// ---------- APPLY NOTE ----------
+  void _applyNote(int row, int col, int number) {
+    if (isGiven[row][col]) return;
+    if (board[row][col] != 0) return;
+
+    final previous = {...notes[row][col]};
+
+    if (notes[row][col].contains(number)) {
+      notes[row][col].remove(number);
+    } else {
+      notes[row][col].add(number);
+    }
+
+    history.add(Move(
+      row: row,
+      col: col,
+      wasPencil: true,
+      previousNotes: previous,
+      newNotes: {...notes[row][col]},
+    ));
+
+    redoStack.clear();
+
+    notifyListeners();
+  }
+
+  /// ---------- STANDARD INPUT ----------
   void inputNumber(int number) {
-    if (state != GameState.playing) return;
     if (selectedRow == null || selectedCol == null) return;
+    if (isNumberComplete(number)) return;
 
     int row = selectedRow!;
     int col = selectedCol!;
 
     if (isGiven[row][col]) return;
 
-    int prev = board[row][col];
-
-    /// Save move for undo/redo
     history.add(Move(
       row: row,
       col: col,
-      previousValue: prev,
+      previousValue: board[row][col],
       newValue: number,
       wasPencil: false,
     ));
 
-    /// Clear redo stack on new input
     redoStack.clear();
 
-    /// Apply number
     board[row][col] = number;
+    notes[row][col].clear();
 
-    /// ---------- STANDARD MODE BEHAVIOR ----------
-    if (mode == InputMode.standard) {
-      /// placing a number = selecting that number
+    _removeNotesFromPeers(row, col, number);
+
+    /// only keep selection in fast mode
+    if (isNumberComplete(number)) {
+      selectedNumber = null;
+      isPencilSelected = false;
+    } else if (mode == InputMode.fast) {
       selectedNumber = number;
     }
 
-    /// ---------- KEY FIX ----------
-    /// If this number is now complete → remove highlight
-    if (isNumberComplete(number)) {
-      selectedNumber = null;
+    notifyListeners();
+    _checkCompletion();
+  }
+
+  void _removeNotesFromPeers(int row, int col, int number) {
+    for (int i = 0; i < 9; i++) {
+      notes[row][i].remove(number);
+      notes[i][col].remove(number);
     }
 
-    notifyListeners();
+    int br = row - row % 3;
+    int bc = col - col % 3;
 
-    /// Check win condition
-    _checkCompletion();
-
-    /// ---------- FAST MODE BEHAVIOR ----------
-    if (mode == InputMode.fast) {
-      selectedRow = null;
-      selectedCol = null;
+    for (int r = 0; r < 3; r++) {
+      for (int c = 0; c < 3; c++) {
+        notes[br + r][bc + c].remove(number);
+      }
     }
   }
 
@@ -245,23 +333,10 @@ class GameProvider extends ChangeNotifier {
     final move = history.removeLast();
     redoStack.add(move);
 
-    board[move.row][move.col] =
-        move.previousValue ?? 0;
-
-    /// KEEP TILE SELECTED IN STANDARD MODE
-    if (mode == InputMode.standard) {
-      selectedRow = move.row;
-      selectedCol = move.col;
-
-      int value = board[move.row][move.col];
-
-      if (value == 0) {
-        /// tile became empty → clear highlight
-        selectedNumber = null;
-      } else {
-        /// tile still has value → highlight that number
-        selectedNumber = value;
-      }
+    if (move.wasPencil) {
+      notes[move.row][move.col] = {...?move.previousNotes};
+    } else {
+      board[move.row][move.col] = move.previousValue ?? 0;
     }
 
     notifyListeners();
@@ -274,28 +349,16 @@ class GameProvider extends ChangeNotifier {
     final move = redoStack.removeLast();
     history.add(move);
 
-    board[move.row][move.col] =
-        move.newValue ?? 0;
-
-    if (mode == InputMode.standard) {
-      selectedRow = move.row;
-      selectedCol = move.col;
-
-      int value = board[move.row][move.col];
-
-      if (value == 0) {
-        /// empty → no highlight
-        selectedNumber = null;
-      } else {
-        /// has number → highlight it
-        selectedNumber = value;
-      }
+    if (move.wasPencil) {
+      notes[move.row][move.col] = {...?move.newNotes};
+    } else {
+      board[move.row][move.col] = move.newValue ?? 0;
     }
 
     notifyListeners();
   }
 
-  /// ---------- UI HELPERS ----------
+  /// ---------- HELPERS ----------
   bool isWrong(int row, int col) {
     if (!autoCheck) return false;
     if (isGiven[row][col]) return false;
@@ -306,16 +369,18 @@ class GameProvider extends ChangeNotifier {
 
   bool shouldHighlight(int row, int col) {
     if (selectedNumber == null) return false;
-    return board[row][col] != 0 &&
-        board[row][col] == selectedNumber;
+    return board[row][col] == selectedNumber;
   }
 
   bool isNumberComplete(int number) {
     int count = 0;
 
-    for (var row in board) {
-      for (var cell in row) {
-        if (cell == number) count++;
+    for (int r = 0; r < 9; r++) {
+      for (int c = 0; c < 9; c++) {
+        if (board[r][c] == number &&
+            board[r][c] == solution[r][c]) {
+          count++;
+        }
       }
     }
 
