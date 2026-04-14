@@ -11,6 +11,9 @@ class _SudokuGridState extends State<SudokuGrid> {
   int? lastRow;
   int? lastCol;
 
+  /// ✅ NEW: track gesture type
+  bool _isSwiping = false;
+
   void _handleTouch(BuildContext context, Offset globalPosition) {
     final game = Provider.of<GameProvider>(context, listen: false);
 
@@ -38,17 +41,37 @@ class _SudokuGridState extends State<SudokuGrid> {
     return AspectRatio(
       aspectRatio: 1,
       child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+
+        /// ✅ TAP (only if not swiping)
+        onTapDown: (details) {
+          if (!_isSwiping) {
+            lastRow = null;
+            lastCol = null;
+            _handleTouch(context, details.globalPosition);
+          }
+        },
+
+        /// ✅ SWIPE START
         onPanStart: (details) {
+          _isSwiping = true;
           lastRow = null;
           lastCol = null;
           _handleTouch(context, details.globalPosition);
         },
+
+        /// ✅ SWIPE MOVE
         onPanUpdate: (details) {
           _handleTouch(context, details.globalPosition);
         },
-        onTapDown: (details) {
-          _handleTouch(context, details.globalPosition);
+
+        /// ✅ RESET
+        onPanEnd: (_) {
+          _isSwiping = false;
+          lastRow = null;
+          lastCol = null;
         },
+
         child: GridView.builder(
           physics: NeverScrollableScrollPhysics(),
           itemCount: 81,
