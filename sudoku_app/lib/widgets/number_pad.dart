@@ -38,7 +38,7 @@ class NumberPad extends StatelessWidget {
                 child: _NumberButton(
                   number: number,
                   isSelected: isSelected,
-                  color: game.userColor,
+                  color: game.penColor,
                   onTap: () => game.selectNumber(number),
                 ),
               ),

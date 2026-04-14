@@ -18,6 +18,7 @@ class SettingsScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(title: Text("Settings")),
+
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -29,12 +30,12 @@ class SettingsScreen extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: colorOptions.entries.map((entry) {
                   final color = entry.value;
-                  final isSelected = game.userColor == color;
+                  final isSelected = game.penColor == color;
 
                   return GestureDetector(
                     onTap: () => game.setUserColor(color),
                     child: Container(
-                      margin: EdgeInsets.symmetric(horizontal: 6),
+                      margin: EdgeInsets.symmetric(horizontal: 4),
                       width: 28,
                       height: 28,
                       decoration: BoxDecoration(
@@ -44,6 +45,48 @@ class SettingsScreen extends StatelessWidget {
                           color: isSelected
                               ? Colors.black
                               : Colors.transparent,
+                          width: 2,
+                        ),
+                      ),
+                      child: isSelected
+                          ? Icon(
+                              Icons.check,
+                              size: 16,
+                              color: color.computeLuminance() > 0.5
+                                  ? Colors.black
+                                  : Colors.white,
+                            )
+                          : null,
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+
+            SizedBox(height: 16),
+
+            /// 🎨 THEME
+            _buildRow(
+              label: "Theme",
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: themeOptions.entries.map((entry) {
+                  final color = entry.value;
+                  final isSelected = game.backgroundColor == color;
+
+                  return GestureDetector(
+                    onTap: () => game.setBackgroundColor(color),
+                    child: Container(
+                      margin: EdgeInsets.symmetric(horizontal: 4),
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        color: color,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: isSelected
+                              ? Colors.black
+                              : Colors.grey.shade400,
                           width: 2,
                         ),
                       ),
@@ -92,7 +135,7 @@ class SettingsScreen extends StatelessWidget {
   /// 🔥 REUSABLE ROW
   Widget _buildRow({required String label, required Widget child}) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween, // 🔥 key
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
           label,
@@ -101,7 +144,6 @@ class SettingsScreen extends StatelessWidget {
             fontWeight: FontWeight.bold,
           ),
         ),
-
         Flexible(
           child: Align(
             alignment: Alignment.centerRight,

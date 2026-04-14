@@ -12,9 +12,24 @@ class SudokuApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create: (_) => GameProvider(),
-      child: MaterialApp(
-        debugShowCheckedModeBanner: false,
-        home: HomeScreen(),
+      child: Consumer<GameProvider>(
+        builder: (context, game, child) {
+          return MaterialApp(
+            debugShowCheckedModeBanner: false,
+
+            theme: ThemeData(
+              scaffoldBackgroundColor: game.backgroundColor,
+
+              appBarTheme: AppBarTheme(
+                backgroundColor: game.backgroundColor,
+                elevation: 0,
+                foregroundColor: Colors.black,
+              ),
+            ),
+
+            home: HomeScreen(),
+          );
+        },
       ),
     );
   }

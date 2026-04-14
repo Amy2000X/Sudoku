@@ -57,7 +57,6 @@ class _GameScreenState extends State<GameScreen> {
 
         centerTitle: true,
 
-        /// CENTER → TIMER + UNDO REDO
         title: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -66,13 +65,11 @@ class _GameScreenState extends State<GameScreen> {
 
             IconButton(
               icon: Icon(Icons.undo),
-              onPressed:
-                  game.history.isEmpty ? null : game.undo,
+              onPressed: game.history.isEmpty ? null : game.undo,
             ),
             IconButton(
               icon: Icon(Icons.redo),
-              onPressed:
-                  game.redoStack.isEmpty ? null : game.redo,
+              onPressed: game.redoStack.isEmpty ? null : game.redo,
             ),
           ],
         ),
@@ -95,6 +92,7 @@ class _GameScreenState extends State<GameScreen> {
             value: game.mode == InputMode.fast,
             onChanged: (_) => game.toggleMode(),
           ),
+
           SwitchListTile(
             title: Text("Pencil Mode"),
             value: game.pencilMode,

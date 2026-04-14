@@ -27,7 +27,8 @@ class GameProvider extends ChangeNotifier {
   bool autoCheck = true;
   bool timerEnabled = true;
 
-  Color userColor = Colors.blue;
+  Color penColor = Colors.blue;
+  Color backgroundColor = Colors.white;
 
   Timer? _timer;
   int seconds = 0;
@@ -61,7 +62,7 @@ class GameProvider extends ChangeNotifier {
 
   /// ---------- SETTINGS ----------
   void setUserColor(Color color) {
-    userColor = color;
+    penColor = color;
     notifyListeners();
   }
 
@@ -74,6 +75,11 @@ class GameProvider extends ChangeNotifier {
     timerEnabled = value;
     notifyListeners();
   }
+
+  void setBackgroundColor(Color color) {
+    backgroundColor = color;
+    notifyListeners();
+  } 
 
   /// ---------- PENCIL ----------
   void togglePencil() {

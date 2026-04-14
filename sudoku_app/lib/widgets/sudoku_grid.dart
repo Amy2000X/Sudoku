@@ -96,17 +96,17 @@ class _SudokuGridState extends State<SudokuGrid> {
             } else if (isWrong) {
               textColor = Colors.red;
             } else {
-              textColor = game.userColor;
+              textColor = game.penColor;
             }
 
             Color bgColor = Colors.transparent;
 
             if (isWrong) {
-              bgColor = Colors.red.withOpacity(0.2);
+              bgColor = Colors.red.withValues(alpha: 0.2);
             } else if (highlight) {
-              bgColor = Colors.black.withOpacity(0.1);
+              bgColor = Colors.black.withValues(alpha: 0.1);
             } else if (isSelected) {
-              bgColor = Colors.black.withOpacity(0.15);
+              bgColor = Colors.black.withValues(alpha: 0.15);
             }
 
             return Container(
@@ -183,7 +183,7 @@ class _SudokuGridState extends State<SudokuGrid> {
                         fontSize: noteSize * 0.6,
                         color: hasNote
                             ? (isHighlighted
-                                ? game.userColor
+                                ? game.penColor
                                 : Colors.grey)
                             : Colors.transparent,
                         fontWeight: isHighlighted
